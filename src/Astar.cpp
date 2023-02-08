@@ -2,26 +2,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <utility>
-#include <vector>
-#include <queue>
 #include <stack>
+#include <set>
 #define INF 0x7fffffff
 using namespace std;
 
 // line colors
-enum Color {
-    ERR,
-    R,
-    G,
-    B,
-    Y
-};
-
-// subway station
-using Station = pair<int, Color>;
-#define id first
-#define line second
-#define make_Station make_pair
+enum Color { ERR, R, G, B, Y };
 
 // subway connection
 struct Connection {
@@ -33,45 +20,88 @@ struct Connection {
 Connection map[14][14];
 
 // A* algorithm
-void Astar(const int src, const int dst) {
-    float duration[14];
+void Astar(const int src, const int dst)
+{
+    // initializes the durations and precursors arrays
+    float durations[14];
     int precursors[14];
     for (int i = 0; i < 14; i++) {
-        duration[i] = INF;
+        durations[i] = INF;
         precursors[i] = -1;
     }
-    duration[src] = 0;
+    durations[src] = 0;
 
-    priority_queue<Station, vector<Station>, greater<Station>> pq;
-    pq.push(make_Station(src, B));
+    // creates the frontier and inserts the source station in it
+    set<pair<int, Color>> frontier;
+    frontier.insert({ src, ERR });
 
-    while (!pq.empty()) {
-        int min = pq.top().id;
-        Color cur_line = pq.top().line;
-        pq.pop();
+    int i = 0;
+    // keeps processing until the frontier is empty
+    while (!frontier.empty()) {
+        // saves the attributes of the current station and erases it from the frontier
+        auto cur = frontier.begin();
+        int cur_id = (*cur).first;
+        Color cur_line = (*cur).second;
+        frontier.erase(cur);
 
-        for (int j = min + 1; j < 14; j++)
-            if (map[min][j].line != ERR) {
-                float heuristic = map[min][j].real_dist + map[min][j].direct_dist;
-                heuristic /= 30; // converts from distance to hours
-                heuristic *= 60; // converts from hours to minutes
-                if (map[min][j].line != cur_line)
-                    heuristic += 4; // adds line change additional time
+        // analyzes every possible connection
+        for (int j = 0; j < 14; j++) {
+            // initializes station_a and station_b for accessing the map properly
+            int station_a, station_b;
+            if (j <= cur_id) {
+                station_a = j;
+                station_b = cur_id;
+            } else {
+                station_a = cur_id;
+                station_b = j;
+            }
 
-                if (duration[min] + heuristic < duration[j]) {
-                    duration[j] = duration[min] + heuristic;
-                    precursors[j] = min;
+            // checks if station_a and station_b are directly connected
+            if (map[station_a][station_b].real_dist) {
+                // initializes the heuristic
+                float heuristic = map[station_a][station_b].real_dist + map[station_a][station_b].direct_dist;
 
-                    pq.push(make_Station(j, map[min][j].line));
+                // converts it from distance to hours
+                heuristic /= 30; 
+
+                // converts it from hours to minutes
+                heuristic *= 60;
+
+                // adds line change additional time, if necessary
+                if (cur_line != ERR && map[station_a][station_b].line != cur_line)
+                    heuristic += 4; 
+
+                // updates the containers, if it's worth it
+                if (durations[cur_id] + heuristic < durations[j]) {
+                    durations[j] = durations[cur_id] + heuristic;
+                    precursors[j] = cur_id;
+
+                    frontier.insert({ j, map[station_a][station_b].line });
                 }
             }
+        }
+
+        // prints the current state of the loop
+        printf("\nIteration #%d\n", i);
+        printf("Current station: %d\n", cur_id + 1);
+        printf("Frontier: ");
+        for (auto &s : frontier)
+            printf("%d ", s.first + 1);
+        putchar('\n');
+
+        i++;
     }
 
+    // estimates the travel time and traces the travel route
+    float travel_time = 0;
     stack<int> s;
-    for (int p = dst; p != -1; p = precursors[p])
+    for (int p = dst; p != -1; p = precursors[p]) {
+        travel_time += (map[precursors[p]][p].real_dist / 30) * 60;
         s.push(p + 1);
-    
-    printf("Estimated time: %.2f minutes\n", duration[dst]);
+    }
+
+    // prints the estimated time and the travel route
+    printf("\nEstimated time: %.2f minutes\n", travel_time);
     printf("Route: ");
     while (!s.empty()) {
         printf("%d ", s.top());
@@ -80,7 +110,8 @@ void Astar(const int src, const int dst) {
     putchar('\n');
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[])
+{
     map[ 0][ 1] = {   10,   10,   B };
     map[ 0][ 2] = { 18.5,    0, ERR };
     map[ 0][ 3] = { 24.8,    0, ERR };
@@ -172,9 +203,9 @@ int main(int argc, char **argv) {
     map[ 8][13] = { 26.6,    0, ERR };
 
     map[ 9][10] = { 17.6,    0, ERR };
-    map[ 9][10] = { 24.6,    0, ERR };
-    map[ 9][10] = { 18.7,    0, ERR };
-    map[ 9][10] = { 21.2,    0, ERR };
+    map[ 9][11] = { 24.6,    0, ERR };
+    map[ 9][12] = { 18.7,    0, ERR };
+    map[ 9][13] = { 21.2,    0, ERR };
 
     map[10][11] = { 14.2,    0, ERR };
     map[10][12] = { 31.5,    0, ERR };
@@ -198,7 +229,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    Astar(atoi(argv[1]) - 1, atoi(argv[2]) - 1);
+    Astar(src - 1, dst - 1);
 
     return 0;
 }
