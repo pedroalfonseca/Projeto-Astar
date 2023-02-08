@@ -1,4 +1,6 @@
 // basics
+#include<iostream>
+
 #include <cstdio>
 #include <cstdlib>
 #include <utility>
@@ -95,8 +97,26 @@ void Astar(const int src, const int dst)
     // estimates the travel time and traces the travel route
     float travel_time = 0;
     stack<int> s;
+    int last_line = 0, actual_line = 0;
     for (int p = dst; p != -1; p = precursors[p]) {
-        travel_time += (map[precursors[p]][p].real_dist / 30) * 60;
+        
+        if (precursors[p] <= p) {
+            actual_line = map[precursors[p]][p].line;
+            travel_time += (map[precursors[p]][p].real_dist) *2;
+        }
+        else {
+            actual_line = map[p][precursors[p]].line;
+            travel_time += (map[p][precursors[p]].real_dist) *2;
+        }
+        
+        // changed the line
+        if ((actual_line > 0 and actual_line <= 4) and (last_line > 0 and actual_line <= 4) and (actual_line != last_line)) {
+            cout << "";
+            travel_time += 4;
+        }
+
+        last_line = actual_line;
+        
         s.push(p + 1);
     }
 
@@ -146,7 +166,7 @@ int main(int argc, char *argv[])
     map[ 2][ 7] = { 13.6,    0, ERR };
     map[ 2][ 8] = {  9.4,  9.4,   R };
     map[ 2][ 9] = { 10.3,    0, ERR };
-    map[ 2][10] = { 19.5,  3.5,   R };
+    map[ 2][10] = { 19.5,    0, ERR };
     map[ 2][11] = { 19.1,    0, ERR };
     map[ 2][12] = { 12.1, 18.7,   R };
     map[ 2][13] = { 16.6,    0, ERR };
